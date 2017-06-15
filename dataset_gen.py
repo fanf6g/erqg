@@ -32,18 +32,6 @@ class DatasetGenerator(dataset_analyser):
         scholar_sentences = self.dblp_sentences('data/Scholar.csv')
         return scholar_sentences
 
-    # def load_dblp_wv(self):
-    #     logging.info('load_dblp_wv')
-    #     dblp_sentences = self.load_dblp()
-    #     vec_wv = [self.word2vec.sentence2vec(row) for row in dblp_sentences]
-    #     return vec_wv
-    #
-    # def load_scholar_wv(self):
-    #     logging.info('load_scholar_wv')
-    #     scholar_sentences = self.load_scholar()
-    #     vec_wv = [self.word2vec.sentence2vec(row) for row in scholar_sentences]
-    #     return vec_wv
-
     def load_matching_matrix(self):
         dblp = pd.read_csv('data/DBLP1.csv', encoding='iso-8859-1')
         scholar = pd.read_csv('data/Scholar.csv', encoding='iso-8859-1')
@@ -71,23 +59,24 @@ class DatasetGenerator(dataset_analyser):
 
         return matrix
 
-    def dump(self, file, dup=1):
+    def dump(self, file, n_pos=500, n_neg=500, dup=False):
         dblp = self.load_dblp()
         scholar = self.load_scholar()
 
         # d_wv = self.load_dblp_wv()
         # s_wv = self.load_scholar_wv()
 
-        idx_pos = self.pos_samples(100)
+        idx_pos = self.pos_samples(n_pos)
 
         train_pos = []
 
         train_tmp_neg = [(dblp[d_i], scholar[s_i]) for (d_i, s_i) in idx_pos]
         train_pos.extend(train_tmp_neg)
 
-        for _ in range(dup):
-            new_train = [self.permute(pair) for pair in train_tmp_neg]
-            train_pos.extend(new_train)
+        if dup:
+            for _ in range(dup):
+                new_train = [self.permute(pair) for pair in train_tmp_neg]
+                train_pos.extend(new_train)
 
         pos = []
 
@@ -102,7 +91,7 @@ class DatasetGenerator(dataset_analyser):
 
         pos = [(p, 1) for p in pos]
 
-        idx_neg = self.neg_samples(320)
+        idx_neg = self.neg_samples(n_neg)
 
         train_tmp_neg = [(dblp[d_i], scholar[s_i]) for (d_i, s_i) in idx_neg]
         neg = []
@@ -179,7 +168,7 @@ if __name__ == "__main__":
     # print(neg)
     # print(tuple(neg) in model.idx_matches)
 
-    model.dump('train')
+    model.dump('train', n_pos=2000, n_neg=3000)
 
     # batch = model.next_batch(64)
     # p_batch = [doc for doc in batch if doc in model.idx_matches]

@@ -6,112 +6,115 @@ import pandas as pd
 import torch
 from torch.autograd import Variable
 
+
 # N is batch size; D_in is input dimension;
 # H is hidden dimension; D_out is output dimension.
 
-file = 'train'
-with open(file, mode='rb') as f:
-    pos, neg = pickle.load(f)
+class shn():
+    '''
+    Single Hidden Nuerual Network.
+    '''
 
-    train = []
-    train.extend(pos[:100])
-    train.extend(neg[:220])
-    np.random.shuffle(train)
+    def __init__(self):
+        D_in, H, D_out = 200, 150, 2
+        self.model = torch.nn.Sequential(
+            torch.nn.Linear(D_in, H),
+            torch.nn.ReLU(),
+            torch.nn.Linear(H, D_out),
+        )
+        self.loss_fn = torch.nn.MSELoss(size_average=False)
 
-    test = []
-    test.extend(pos[100:])
-    test.extend(neg[220:])
+        self.learning_rate = 1e-3
+        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
-# print(train)
+    def load(self, file='train'):
+        n_train = 320
+        with open(file, mode='rb') as f:
+            pos, neg = pickle.load(f)
 
-train = pd.DataFrame(train)
-x_train = train[0].tolist()
-y_train = train[1].tolist()
+            train_pos, test_pos = pos[:n_train], pos[n_train:]
+            train_neg, test_neg = neg[:n_train], neg[n_train:]
 
-N, D_in, H, D_out = 320, 200, 150, 2
+            train = []
+            train.extend(train_pos)
+            train.extend(train_neg)
+            np.random.shuffle(train)
 
-# idx = np.array(list(zip(range(N), y)))
+            test = []
+            test.extend(test_pos)
+            test.extend(test_neg)
 
-tensor_y = np.zeros(shape=(N, D_out), dtype='float')
-tensor_y[list(range(N)), y_train] = 1.0
+        train = pd.DataFrame(train)
+        x_train = train[0].tolist()
+        y_train = train[1].tolist()
 
-# Create random Tensors to hold inputs and outputs, and wrap them in Variables.
+        test = pd.DataFrame(test)
+        x_test = test[0].tolist()
+        y_test = test[1].tolist()
 
-x_train = Variable(torch.from_numpy(np.array(x_train))).float()
-y_train = Variable(torch.from_numpy(np.array(tensor_y)), requires_grad=False).float()
-print(x_train)
-print(y_train)
+        # N, D_in, H, D_out = len(x_train), 200, 150, 2
+        # N, D_in, H, D_out = len(x_train), 200, 150, 2
 
-# Use the nn package to define our model and loss function.
-model = torch.nn.Sequential(
-    torch.nn.Linear(D_in, H),
-    torch.nn.ReLU(),
-    torch.nn.Linear(H, D_out),
-)
-torch.nn.NLLLoss(weight=[3, 1])
-loss_fn = torch.nn.MSELoss(size_average=False)
+        tensor_y = np.zeros(shape=((len(x_train)), 2), dtype='float')
+        tensor_y[list(range(len(x_train))), y_train] = 1.0
 
-# Use the optim package to define an Optimizer that will update the weights of
-# the model for us. Here we will use Adam; the optim package contains many other
-# optimization algoriths. The first argument to the Adam constructor tells the
-# optimizer which Variables it should update.
+        x_train = Variable(torch.from_numpy(np.array(x_train))).float()
+        y_train = Variable(torch.from_numpy(np.array(tensor_y)), requires_grad=False).float()
 
-# datasets = DatasetGenerator()
+        x_test = Variable(torch.from_numpy(np.array(x_test))).float()
+        y_test = torch.from_numpy(np.array(y_test))
 
-# batch = datasets.next_batch(N)
+        return x_train, y_train, x_test, y_test
 
+    def training(self, x_train, y_train):
+        # Create random Tensors to hold inputs and outputs, and wrap them in Variables.
 
 
-learning_rate = 1e-3
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
-for t in range(1000):
-    # Forward pass: compute predicted y by passing x to the model.
+        for t in range(1000):
+            # Forward pass: compute predicted y by passing x to the model.
 
-    y_pred = model(x_train)
+            y_pred = self.model(x_train)
 
-    # Compute and print loss.
-    loss = loss_fn(y_pred, y_train)
-    print(t, loss.data[0])
+            # Compute and print loss.
+            loss = self.loss_fn(y_pred, y_train)
+            print(t, loss.data[0])
 
-    # Before the backward pass, use the optimizer object to zero all of the
-    # gradients for the variables it will update (which are the learnable weights
-    # of the model)
-    optimizer.zero_grad()
+            # Before the backward pass, use the optimizer object to zero all of the
+            # gradients for the variables it will update (which are the learnable weights
+            # of the model)
+            self.optimizer.zero_grad()
 
-    # Backward pass: compute gradient of the loss with respect to model
-    # parameters
-    loss.backward()
+            # Backward pass: compute gradient of the loss with respect to model
+            # parameters
+            loss.backward()
 
-    # Calling the step function on an Optimizer makes an update to its
-    # parameters
-    optimizer.step()
+            # Calling the step function on an Optimizer makes an update to its
+            # parameters
+            self.optimizer.step()
 
-correct = 0
-total = 200
+    def evaluate(self, x_test, y_test):
+        correct = 0
+        total = len(y_test)
 
-test = pd.DataFrame(test)
-x_test = test[0].tolist()
-y_test = test[1].tolist()
+        print(x_test)
+        print(y_test)
 
-N_test = 200
-# idx = np.array(list(zip(range(N), y)))
-#
-test_y = np.zeros(shape=(N_test, D_out), dtype='float')
-# test_y[list(range(N_test)), y_test] = 1.0
+        y_pred = self.model(x_test)
+        print(y_pred)
+        _, predicted = torch.max(y_pred.data, 1)
 
-x_test = Variable(torch.from_numpy(np.array(x_test))).float()
-y_test = torch.from_numpy(np.array(y_test))
+        print(predicted)
 
-print(x_test)
-print(y_test)
+        correct += (predicted == y_test).sum()
+        print(correct)
 
-y_pred = model(x_test)
-print(y_pred)
-_, predicted = torch.max(y_pred.data, 1)
+        print('Accuracy of the network on the 100 test images: %d %%' % (100.0 * correct / total))
 
-print(predicted)
 
-correct += (predicted == y_test).sum()
-print(correct)
+if __name__ == "__main__":
+    model = shn()
+    x_train, y_train, x_test, y_test = model.load()
+    model.training(x_train, y_train)
+    model.evaluate(x_test, y_test)
 
-print('Accuracy of the network on the 100 test images: %d %%' % (100.0 * correct / total))
+    pass
