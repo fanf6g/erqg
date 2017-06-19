@@ -6,9 +6,10 @@ import pandas as pd
 import torch
 from torch.autograd import Variable
 
-
 # N is batch size; D_in is input dimension;
 # H is hidden dimension; D_out is output dimension.
+from dataset_gen2 import DatasetGenerator2
+
 
 class shn():
     '''
@@ -16,7 +17,7 @@ class shn():
     '''
 
     def __init__(self):
-        D_in, H, D_out = 200, 150, 2
+        D_in, H, D_out = 200, 180, 2
         self.model = torch.nn.Sequential(
             torch.nn.Linear(D_in, H),
             torch.nn.ReLU(),
@@ -28,7 +29,7 @@ class shn():
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=self.learning_rate)
 
     def load(self, file='train'):
-        n_train = 320
+        n_train = 500
         with open(file, mode='rb') as f:
             pos, neg = pickle.load(f)
 
@@ -43,6 +44,7 @@ class shn():
             test = []
             test.extend(test_pos)
             test.extend(test_neg)
+            np.random.shuffle(test)
 
         train = pd.DataFrame(train)
         x_train = train[0].tolist()
@@ -66,7 +68,7 @@ class shn():
 
         return x_train, y_train, x_test, y_test
 
-    def training(self, x_train, y_train):
+    def training(self, x_train, y_train, savePath=None):
         # Create random Tensors to hold inputs and outputs, and wrap them in Variables.
 
 
@@ -92,6 +94,11 @@ class shn():
             # parameters
             self.optimizer.step()
 
+        if savePath is not None:
+            with open(savePath, mode='wb') as f:
+                pickle.dump(self.model, f)
+            pass
+
     def evaluate(self, x_test, y_test):
         correct = 0
         total = len(y_test)
@@ -108,13 +115,40 @@ class shn():
         correct += (predicted == y_test).sum()
         print(correct)
 
-        print('Accuracy of the network on the 100 test images: %d %%' % (100.0 * correct / total))
+        print('Accuracy of the network on the 100 test images: {0}'.format(100.0 * correct / total))
+
+    def recover(self):
+        dg = DatasetGenerator2()
+        x_test, y_test = dg.onerow(3)
+
+        x_test = Variable(torch.from_numpy(np.array(x_test))).float()
+        y_test = torch.from_numpy(np.array(y_test)).long()
+
+        y_pred = self.model(x_test).int()
+        print(y_pred)
+        _, predicted = torch.max(y_pred.data, 1)
+
+        print(predicted)
+        total = len(x_test)
+        correct = 0
+        correct += (predicted == y_test).sum()
+        print(correct)
+
+        print('Accuracy of the network on the 100 test images: {0}'.format(100.0 * correct / total))
 
 
 if __name__ == "__main__":
     model = shn()
     x_train, y_train, x_test, y_test = model.load()
     model.training(x_train, y_train)
-    model.evaluate(x_test, y_test)
-
+    # model.evaluate(x_test, y_test)
+    model.recover()
+    # dg2 = DatasetGenerator2()
+    # features,labels = dg2.onerow(3)
+    # print(labels)
+    # it = model.recover()
+    # a = it.__next__()
+    # print(a.shape)
+    # print(a)
+    # print(a.sum())
     pass

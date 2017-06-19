@@ -86,7 +86,7 @@ class DatasetGenerator(dataset_analyser):
 
             # print(np.concatenate([w0, w1]))
             w_prod = w0 * w1
-            w_diff = w0 - w1
+            w_diff = np.abs(w0 - w1)
             pos.append(np.concatenate([w_prod, w_diff]))
 
         pos = [(p, 1) for p in pos]
@@ -99,8 +99,10 @@ class DatasetGenerator(dataset_analyser):
             w0 = self.word2vec_gensim.sentence2vec(pair[0])
             w1 = self.word2vec_gensim.sentence2vec(pair[1])
 
-            print(np.concatenate([w0, w1]))
-            neg.append(np.concatenate([w0, w1]))
+            # print(np.concatenate([w0, w1]))
+            w_prod = w0 * w1
+            w_diff = np.abs(w0 - w1)
+            neg.append(np.concatenate([w_prod, w_diff]))
 
         neg = [(p, 0) for p in neg]
 
@@ -168,7 +170,7 @@ if __name__ == "__main__":
     # print(neg)
     # print(tuple(neg) in model.idx_matches)
 
-    model.dump('train', n_pos=2000, n_neg=3000)
+    model.dump('train', n_pos=5000, n_neg=45000)
 
     # batch = model.next_batch(64)
     # p_batch = [doc for doc in batch if doc in model.idx_matches]

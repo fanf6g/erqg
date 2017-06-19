@@ -25,14 +25,37 @@ class dataset_analyser:
         sents = [self.analyze(sent) for sent in sents]
         return sents
 
+    def dblp_sent(self, df):
+        # file = '../data/DBLP1.csv'
+        # df = pd.read_csv(file, encoding='iso-8859-1')
+        df = df.fillna('')
+
+        df['sent'] = df['authors'] + ' ' + df['title'] + ' ' + df['venue']
+        sents = df['sent'].tolist()
+        sents = [self.analyze(sent) for sent in sents]
+        # df['sent'] = sents
+        return sents
+
     def scholar_sentences(self, file):
         # file = '../data/Scholar.csv'
-        data = pd.read_csv(file, encoding='iso-8859-1')
-        data = data.fillna('')
+        df = pd.read_csv(file, encoding='iso-8859-1')
+        df = df.fillna('')
 
-        data['sent'] = data['authors'] + ' ' + data['title'] + ' ' + data['venue']
-        sents = data['sent'].tolist()
+        df['sent'] = df['authors'] + ' ' + df['title'] + ' ' + df['venue']
+        sents = df['sent'].tolist()
         sents = [self.analyze(sent) for sent in sents]
+        # df['sent'] = sents
+        return sents
+
+    def scholar_sent(self, df):
+        # file = '../data/Scholar.csv'
+        # df = pd.read_csv(file, encoding='iso-8859-1')
+        df = df.fillna('')
+
+        df['sent'] = df['authors'] + ' ' + df['title'] + ' ' + df['venue']
+        sents = df['sent'].tolist()
+        sents = [self.analyze(sent) for sent in sents]
+        # df['sent'] = sents
         return sents
 
     def dblp_traning_sentences(self):
